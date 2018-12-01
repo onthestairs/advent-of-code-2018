@@ -8,6 +8,7 @@ import Options.Applicative
 import System.Console.Pretty (Color (..), Style (..), color, style)
 
 import qualified Day00
+import qualified Day01
 
 printColouredEither :: (Show a, Show b) => Either a b -> IO ()
 printColouredEither (Left a) = putStrLn (color Red (show a) :: Text)
@@ -19,8 +20,8 @@ data DaySolvers = DaySolvers Solver Solver
 
 solvers :: Map Day DaySolvers
 solvers = fromList [
-    (0, DaySolvers Day00.solve1' Day00.solve2'),
-    (1, DaySolvers Day00.solve1' Day00.solve2')]
+    -- (0, DaySolvers Day00.solve1' Day00.solve2'),
+    (1, DaySolvers Day01.solve1' Day01.solve2')]
 
 solveKnownDay :: Day -> DaySolvers -> IO ()
 solveKnownDay day (DaySolvers solver1 solver2) = do
