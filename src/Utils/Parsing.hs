@@ -14,5 +14,8 @@ parseFile filepath parser = do
     fileContents <- readFile filepath
     pure $ runParser parser filepath fileContents
 
+intParser :: Parser Int
+intParser = L.decimal
+
 signedIntParser :: Parser Int
 signedIntParser = L.signed (hidden space) L.decimal

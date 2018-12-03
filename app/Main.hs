@@ -12,6 +12,7 @@ import System.Console.Pretty (Color (..), Style (..), color, style)
 import qualified Day00
 import qualified Day01
 import qualified Day02
+import qualified Day03
 
 printColouredEither :: (Show a, Show b) => Either a b -> IO ()
 printColouredEither (Left a) = putStrLn (color Red (show a) :: Text)
@@ -32,7 +33,7 @@ solvers :: Map Day (DaySolvers Maybe)
 solvers = fromList [
     (1, DaySolvers (Just $ Solver "./inputs/01/1.txt" Day01.solve1') (Just $ Solver "./inputs/01/1.txt" Day01.solve2')),
     (2, DaySolvers (Just $ Solver "./inputs/02/1.txt" Day02.solve1') (Just $ Solver "./inputs/02/1.txt" Day02.solve2')),
-    (3, DaySolvers Nothing Nothing),
+    (3, DaySolvers (Just $ Solver "./inputs/03/1.txt" Day03.solve1') (Just $ Solver "./inputs/03/1.txt" Day03.solve2')),
     (4, DaySolvers Nothing Nothing),
     (5, DaySolvers Nothing Nothing),
     (5, DaySolvers Nothing Nothing),
