@@ -14,17 +14,5 @@ parseFile filepath parser = do
     fileContents <- readFile filepath
     pure $ runParser parser filepath fileContents
 
--- digitsToInt ::
-
--- signedIntParser :: Parser Int
--- signedIntParser = do
---     multiplier <- (string "+" *> 1) <|> (string "-" *> (-1))
---     digits <- some digitChar
---     pure $ (multiplier * digits)
-
--- lexeme          = L.lexeme spaceConsumer
--- integer         = L.decimal
--- signedIntParser = L.signed L.space integer
-
 signedIntParser :: Parser Int
 signedIntParser = L.signed (hidden space) L.decimal

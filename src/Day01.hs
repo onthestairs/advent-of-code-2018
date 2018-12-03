@@ -13,8 +13,8 @@ import Control.Arrow
 import Utils.Parsing
 
 -- end to end solving functions
-solve1' = solve1 <<$>> parseFile "./inputs/01/1.txt" intListParser
-solve2' = solve2 <<$>> parseFile "./inputs/01/1.txt" intListParser
+solve1' = solve1 <<$>> parseMaybe intListParser
+solve2' = solve2 <<$>> parseMaybe intListParser
 
 intListParser :: Parser [Int]
 intListParser = sepBy signedIntParser (string "\n")

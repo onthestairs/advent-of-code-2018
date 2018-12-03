@@ -13,8 +13,8 @@ import Control.Arrow
 import Utils.Parsing
 
 -- end to end solving functions
-solve1' = solve1 <<$>> parseFile "./inputs/02/1.txt" charListParser
-solve2' = solve2 <<$>> parseFile "./inputs/02/1.txt" charListParser
+solve1' = solve1 <<$>> parseMaybe charListParser
+solve2' = solve2 <<$>> parseMaybe charListParser
 
 charListParser :: Parser [[Char]]
 charListParser = sepBy (Text.Megaparsec.some letterChar) (string "\n")
