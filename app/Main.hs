@@ -13,6 +13,7 @@ import qualified Day00
 import qualified Day01
 import qualified Day02
 import qualified Day03
+import qualified Day04
 
 printColouredEither :: (Show a, Show b) => Either a b -> IO ()
 printColouredEither (Left a) = putStrLn (color Red (show a) :: Text)
@@ -34,7 +35,7 @@ solvers = fromList [
     (1, DaySolvers (Just $ Solver "./inputs/01/1.txt" Day01.solve1') (Just $ Solver "./inputs/01/1.txt" Day01.solve2')),
     (2, DaySolvers (Just $ Solver "./inputs/02/1.txt" Day02.solve1') (Just $ Solver "./inputs/02/1.txt" Day02.solve2')),
     (3, DaySolvers (Just $ Solver "./inputs/03/1.txt" Day03.solve1') (Just $ Solver "./inputs/03/1.txt" Day03.solve2')),
-    (4, DaySolvers Nothing Nothing),
+    (4, DaySolvers (Just $ Solver "./inputs/04/1.txt" Day04.solve1') (Just $ Solver "./inputs/04/1.txt" Day04.solve2')),
     (5, DaySolvers Nothing Nothing),
     (5, DaySolvers Nothing Nothing),
     (6, DaySolvers Nothing Nothing),
@@ -57,6 +58,10 @@ solvers = fromList [
     (23, DaySolvers Nothing Nothing),
     (24, DaySolvers Nothing Nothing),
     (25, DaySolvers Nothing Nothing)]
+
+runSolver filename solver = do
+  fileContents <- readFile filename
+  print (solver fileContents)
 
 solveKnownDayPart :: Int -> Maybe Solver -> IO ()
 solveKnownDayPart part maybeSolver = do

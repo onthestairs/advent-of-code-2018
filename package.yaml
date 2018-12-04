@@ -24,6 +24,7 @@ dependencies:
 - containers
 - optparse-applicative
 - pretty-terminal
+- time
 
 name: AdventOfCode18
 version: 0.1.0.0
