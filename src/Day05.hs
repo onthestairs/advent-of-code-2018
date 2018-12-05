@@ -21,8 +21,6 @@ type Polymer = [Char]
 polymerParser :: Parser Polymer
 polymerParser = Text.Megaparsec.many letterChar
 
-converge f x = let x' = f x in if x == x' then x else converge f x'
-
 triggersReaction :: Char -> Char -> Bool
 triggersReaction x y = x /= y && toUpper x == toUpper y
 
@@ -31,7 +29,17 @@ react [] = []
 react [x] = [x]
 react (x:y:xs) = if triggersReaction x y then xs else x:react(y:xs)
 
-afterAllReactionsLength = length . converge react
+converge f x = let x' = f x in if x == x' then x else converge f x'
+fullyReactSlow = converge react
+
+fullyReact :: Polymer -> Polymer
+fullyReact p = reverse $ go [] p
+  where
+    go [] (c:cs) = go [c] cs
+    go xs [] = xs
+    go (x:xs) (c:cs) = if triggersReaction x c then go xs cs else go (c:x:xs) cs
+
+afterAllReactionsLength = length . fullyReact
 
 solve1 :: Polymer -> Int
 solve1 = afterAllReactionsLength
