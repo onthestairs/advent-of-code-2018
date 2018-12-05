@@ -39,6 +39,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
   - pretty-terminal-0.1.0.0@sha256:be3ab74369bfb6604f3831551e668b33cebb6eef244c9363599bd29034ffbed0
+  - relude-0.4.0@sha256:2d31e2536b43625176f124bdbcf9d5dbae60084c9ec93c66663436033e6eeaef
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

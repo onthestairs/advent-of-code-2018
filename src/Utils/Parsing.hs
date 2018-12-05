@@ -11,10 +11,10 @@ import Data.Time.Calendar
 
 type Parser = Parsec Void Text
 
-parseFile :: FilePath -> Parser a -> IO (Either (ParseError Char Void) a)
-parseFile filepath parser = do
-    fileContents <- readFile filepath
-    pure $ runParser parser filepath fileContents
+-- parseFile :: FilePath -> Parser a -> IO (Either (ParseError Char Void) a)
+-- parseFile filepath parser = do
+--     fileContents <- readFile filepath
+--     pure $ runParser parser filepath fileContents
 
 intParser :: Parser Int
 intParser = L.decimal

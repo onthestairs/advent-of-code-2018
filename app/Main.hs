@@ -9,19 +9,19 @@ import qualified Data.Map
 import Options.Applicative
 import System.Console.Pretty (Color (..), Style (..), color, style)
 
-import qualified Day00
+-- import qualified Day00
 import qualified Day01
 import qualified Day02
 import qualified Day03
 import qualified Day04
 
 printColouredEither :: (Show a, Show b) => Either a b -> IO ()
-printColouredEither (Left a) = putStrLn (color Red (show a) :: Text)
-printColouredEither (Right b) = putStrLn (color Green (show b) :: Text)
+printColouredEither (Left a) = putTextLn (color Red (show a) :: Text)
+printColouredEither (Right b) = putTextLn (color Green (show b) :: Text)
 
 printColouredMaybe :: (Show a) => Maybe a -> IO ()
-printColouredMaybe Nothing  = putStrLn (color Red "Did not solve" :: Text)
-printColouredMaybe (Just a) = putStrLn (color Green (show a) :: Text)
+printColouredMaybe Nothing  = putTextLn (color Red "Did not solve" :: Text)
+printColouredMaybe (Just a) = putTextLn (color Green (show a) :: Text)
 
 type Day = Int
 data Solver = forall a. (Show a) => Solver {
@@ -60,30 +60,30 @@ solvers = fromList [
     (25, DaySolvers Nothing Nothing)]
 
 runSolver filename solver = do
-  fileContents <- readFile filename
+  fileContents <- readFileText filename
   print (solver fileContents)
 
 solveKnownDayPart :: Int -> Maybe Solver -> IO ()
 solveKnownDayPart part maybeSolver = do
-  putStr (System.Console.Pretty.style Italic "Part " <> show part <> ": " :: Text)
+  putText (System.Console.Pretty.style Italic "Part " <> show part <> ": " :: Text)
   case maybeSolver of
     Just (Solver filename solver) -> do
-      fileContents1 <- readFile filename
+      fileContents1 <- readFileText filename
       let solution1 = solver fileContents1
       printColouredMaybe solution1
-    Nothing -> putStrLn (color Red "Not implemented" :: Text)
+    Nothing -> putTextLn (color Red "Not implemented" :: Text)
 
 solveKnownDay :: Day -> DaySolvers Maybe -> IO ()
 solveKnownDay day (DaySolvers solver1 solver2) = do
-    putStrLn (System.Console.Pretty.style Underline ("Day " <> show day) :: Text)
-    solveKnownDayPart 1 solver1
-    solveKnownDayPart 2 solver2
+  putTextLn (System.Console.Pretty.style Underline ("Day " <> show day) :: Text)
+  solveKnownDayPart 1 solver1
+  solveKnownDayPart 2 solver2
 
 solveAllDays = forM_ (Data.Map.assocs solvers) (uncurry solveKnownDay)
 
 solveDay :: Day -> IO ()
 solveDay day = case Data.Map.lookup day solvers of
-    Nothing -> putStrLn ("Couldn't find solvers for day " <> show day :: Text)
+    Nothing -> putTextLn ("Couldn't find solvers for day " <> show day :: Text)
     (Just solvers) -> solveKnownDay day solvers
 
 data SolveOptions = SolveDay Day | SolveAll

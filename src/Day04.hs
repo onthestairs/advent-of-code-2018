@@ -4,14 +4,17 @@ module Day04(
 ) where
 
 import Relude
+import Relude.Extra.Foldable1
 
 import qualified Data.Map as Map
+import qualified Data.List as List
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Data.Time.LocalTime
 import Data.Time.Calendar
 
 import Utils.Parsing
+import Utils.Map
 
 -- end to end solving functions
 solve1' = solve1 <<$>> parseMaybe guardLogParser
@@ -50,76 +53,77 @@ guardLogEntryParser = do
 guardLogParser :: Parser [LogEntry]
 guardLogParser = sepBy guardLogEntryParser newline
 
+---
+
 type Minute = Int
-data SleepState = Asleep Minute | Awake
-data GuardsState = GuardsState {
-  currentGuard :: GuardId,
-  currentGuardState :: SleepState,
-  guardSleepMinutes :: Map.Map GuardId (Map.Map Minute Int)
-}
+type SleepPattern = Map.Map Minute Int
 
-getMinute :: LocalTime -> Minute
-getMinute = todMin . localTimeOfDay
+data SleepInterval = SleepInterval {
+  startMinute :: Minute,
+  endMinute :: Minute
+} deriving (Show)
+minutesAsleep :: SleepInterval -> [Minute]
+minutesAsleep (SleepInterval start end) = [start..end-1]
+data GuardShift = GuardShift {
+  _guardId :: GuardId,
+  _sleepIntervals :: [SleepInterval]
+} deriving (Show)
 
-type Counter a = Map.Map a Int
-updateBy :: Ord a => Counter a -> a -> Int -> Counter a
-updateBy c k n = case Map.lookup k c of
-  Just _ -> Map.insertWith (+) k n c
-  Nothing -> Map.insert k n c
-emptyCounter = Map.empty
+isShiftStart :: LogEntry -> Bool
+isShiftStart (LogEntry  _ (StartsShift _)) = True
+isShiftStart _ = False
 
-updateManyBy :: Ord a => Counter a -> [a] -> Int -> Counter a
-updateManyBy c ks n = foldl' (\c' k -> updateBy c' k n) c ks
+splitLog :: [LogEntry] -> [[LogEntry]]
+splitLog [] = []
+splitLog (shiftStart@(LogEntry _ (StartsShift _)):log) = (shiftStart:shift):(splitLog rest)
+  where (shift, rest) = List.span (not . isShiftStart) log
 
-updateGuardState :: GuardsState -> LogEntry -> GuardsState
-updateGuardState s (LogEntry _ (StartsShift newGuardId)) = s { currentGuard = newGuardId }
-updateGuardState s (LogEntry localTime FallsAsleep) = s { currentGuardState = (Asleep (getMinute localTime)) }
-updateGuardState s@(GuardsState guardId (Asleep minute) sleepMinutes) (LogEntry localTime WakesUp) = s { currentGuardState = Awake, guardSleepMinutes = newAsleepMap }
-  where minutesAsleep = [minute..(getMinute localTime)-1]
-        newAsleepMap = case Map.lookup guardId sleepMinutes of
-          Just guardMap -> Map.adjust (\c -> updateManyBy c minutesAsleep 1) guardId sleepMinutes
-          Nothing -> Map.insert guardId (updateManyBy emptyCounter minutesAsleep 1) sleepMinutes
+getEventMinute = todMin . localTimeOfDay
+guardLogToIntervals :: [LogEntry] -> [SleepInterval]
+guardLogToIntervals [] = []
+guardLogToIntervals ((LogEntry asleepTime FallsAsleep):(LogEntry awakeTime WakesUp):rest) =
+  (SleepInterval (getEventMinute asleepTime) (getEventMinute awakeTime):guardLogToIntervals rest)
 
+shiftLogToShift :: [LogEntry] -> GuardShift
+shiftLogToShift ((LogEntry _ (StartsShift guardId)):rest) = GuardShift guardId (guardLogToIntervals rest)
 
-findMostAsleepGuard :: Map.Map GuardId (Map.Map Minute Int) -> Maybe GuardId
-findMostAsleepGuard m = safeHead $ map fst $ reverse $ sortOn snd $ Map.toList guardMinutesAsleep
-  where guardMinutesAsleep :: Map.Map GuardId Int
-        guardMinutesAsleep = Map.map (sum . Map.elems) m
+logToShifts :: [LogEntry] -> [GuardShift]
+logToShifts log = map shiftLogToShift $ splitLog sortedLog
+  where sortedLog = sortOn time log
 
-findModalAsleepMinute :: (Map.Map Minute Int) -> Maybe Minute
-findModalAsleepMinute m = safeHead $ map fst $ reverse $ sortOn snd $ Map.toList m
+shiftMinutesAsleep :: GuardShift -> [Minute]
+shiftMinutesAsleep (GuardShift _ sleepIntervals) = concatMap minutesAsleep sleepIntervals
+
+addShiftToSleepPattern :: GuardShift -> SleepPattern -> SleepPattern
+addShiftToSleepPattern shift = insertManyWith (+) (shiftMinutesAsleep shift) 1
+
+shiftsToSleepPatterns :: [GuardShift] -> Map.Map GuardId SleepPattern
+shiftsToSleepPatterns = foldl' insertShift Map.empty
+  where insertShift patterns shift@(GuardShift guardId _) = Map.alter (adjuster shift) guardId patterns
+        adjuster :: GuardShift -> Maybe SleepPattern -> Maybe SleepPattern
+        adjuster shift Nothing = Just $ addShiftToSleepPattern shift Map.empty
+        adjuster shift (Just sleepPattern) = Just $ addShiftToSleepPattern shift sleepPattern
+
+logToSleepPatterns = shiftsToSleepPatterns . logToShifts
+
+sleepPatternToTotalMinutesAsleep :: SleepPattern -> Int
+sleepPatternToTotalMinutesAsleep = sum . Map.elems
 
 solve1 :: [LogEntry] -> Maybe Int
 solve1 log = do
-  guardId <- mostAsleepGuard
-  guardSleepCounter <- Map.lookup guardId guardsSleepCounter
-  minute <- findModalAsleepMinute guardSleepCounter
+  let sleepPatterns = logToSleepPatterns log
+  (guardId, _) <- maximumByValue (Map.map sleepPatternToTotalMinutesAsleep sleepPatterns)
+  mostAsleepGuardSleepPattern <- Map.lookup guardId sleepPatterns
+  (minute, _) <- maximumByValue mostAsleepGuardSleepPattern
   pure $ guardId * minute
-  where sortedLog = sortOn time log
-        initialState = GuardsState 0 Awake Map.empty
-        asleepMinutes = foldl' updateGuardState initialState sortedLog
-        guardsSleepCounter = (guardSleepMinutes asleepMinutes)
-        mostAsleepGuard = findMostAsleepGuard guardsSleepCounter
 
--- data ModalMinute = ModalMinute {
---   M
--- }
+sleepPatternToMaximumMinutesAsleep :: SleepPattern -> Maybe Int
+sleepPatternToMaximumMinutesAsleep = viaNonEmpty maximum1 . Map.elems
 
-findModalMinute :: (Ord k, Ord v) => Map.Map k v -> Maybe (k, v)
-findModalMinute m = safeHead $ reverse $ sortOn snd $ Map.toList m
-
-findMaxModalMinute :: (Ord k, Ord v) => Map.Map k (l, v) -> Maybe (k, (l, v))
-findMaxModalMinute m = safeHead $ reverse $ sortOn (snd . snd) $ Map.toList m
-
-solve2 :: [LogEntry] -> Maybe (Int, Int, Int, Int)
+solve2 :: [LogEntry] -> Maybe Int
 solve2 log = do
-  let guardModalMinutes = Map.mapMaybe id $ Map.map findModalMinute guardsSleepCounter
-  (guardId, (minute, timesAsleep)) <- findMaxModalMinute guardModalMinutes
-  -- guardSleepCounter <- Map.lookup guardId guardsSleepCounter
-  -- minute <- findModalAsleepMinute guardSleepCounter
-  pure $ (guardId, minute, timesAsleep, guardId * minute)
-  where sortedLog = sortOn time log
-        initialState = GuardsState 0 Awake Map.empty
-        asleepMinutes = foldl' updateGuardState initialState sortedLog
-        guardsSleepCounter = (guardSleepMinutes asleepMinutes)
-        -- mostAsleepGuard = findMostAsleepGuard guardsSleepCounter
+  let sleepPatterns = logToSleepPatterns log
+  (guardId, _) <- maximumByValue (Map.map sleepPatternToMaximumMinutesAsleep sleepPatterns)
+  maxMinuteAsleepGuardSleepPattern <- Map.lookup guardId sleepPatterns
+  (minute, _) <- maximumByValue maxMinuteAsleepGuardSleepPattern
+  pure $ guardId * minute
