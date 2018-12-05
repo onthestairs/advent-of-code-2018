@@ -14,7 +14,7 @@ import Utils.Parsing
 
 -- end to end solving functions
 solve1' = solve1 <<$>> parseMaybe claimListParser
-solve2' = solve2 <<$>> parseMaybe claimListParser
+solve2' = solve2 <=< parseMaybe claimListParser
 
 data Claim = Claim {
   claimId :: Int,
@@ -64,5 +64,5 @@ claimIsNotOverlapped overlaps claim = all ok (claimRange claim)
       Nothing -> False
       (Just n) -> n == 1
 
-solve2 :: [Claim] -> [Int]
-solve2 cs = map claimId $ filter (claimIsNotOverlapped (makeDensityMap cs)) cs
+solve2 :: [Claim] -> Maybe Int
+solve2 cs = viaNonEmpty head $ map claimId $ filter (claimIsNotOverlapped (makeDensityMap cs)) cs

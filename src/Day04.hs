@@ -17,8 +17,8 @@ import Utils.Parsing
 import Utils.Map
 
 -- end to end solving functions
-solve1' = solve1 <<$>> parseMaybe guardLogParser
-solve2' = solve2 <<$>> parseMaybe guardLogParser
+solve1' = solve1 <=< parseMaybe guardLogParser
+solve2' = solve2 <=< parseMaybe guardLogParser
 
 type GuardId = Int
 data GuardEvent =

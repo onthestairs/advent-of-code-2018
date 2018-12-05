@@ -15,7 +15,7 @@ import Utils.Map
 
 -- end to end solving functions
 solve1' = solve1 <<$>> parseMaybe polymerParser
-solve2' = solve2 <<$>> parseMaybe polymerParser
+solve2' = solve2 <=< parseMaybe polymerParser
 
 type Polymer = [Char]
 polymerParser :: Parser Polymer
