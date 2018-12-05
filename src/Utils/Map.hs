@@ -9,3 +9,6 @@ insertManyWith f ks v m = foldl' (\m' k -> Map.insertWith f k v m') m ks
 
 maximumByValue :: (Ord k, Ord v) => Map.Map k v -> Maybe (k, v)
 maximumByValue = (viaNonEmpty head) . reverse . sortOn snd . Map.toList
+
+minimumByValue :: (Ord k, Ord v) => Map.Map k v -> Maybe (k, v)
+minimumByValue = (viaNonEmpty head) . sortOn snd . Map.toList
