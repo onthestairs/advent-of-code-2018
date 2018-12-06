@@ -86,9 +86,9 @@ solve1 ps = do
   nonEmptyPoints <- nonEmpty ps
   let boundingBox = makeBoundingBox nonEmptyPoints
   let nearestNeighboursMap = makeNearestNeighbourMap nonEmptyPoints boundingBox
-  let pointsWhichTouchEdge = findPointsWhichProjectToEdge boundingBox nearestNeighboursMap
+  let pointsWhichProjectToEdge = findPointsWhichProjectToEdge boundingBox nearestNeighboursMap
   let counts = counter $ mapMaybe nearestNeighbourToPoint (Map.elems nearestNeighboursMap)
-  let innerPointsOnly = Map.filterWithKey (\p _ -> not (Set.member p pointsWhichTouchEdge)) counts
+  let innerPointsOnly = Map.filterWithKey (\p _ -> not (Set.member p pointsWhichProjectToEdge)) counts
   snd <$> maximumByValue innerPointsOnly
 
 cumulativeDistance :: NonEmpty Point -> Point -> Int
