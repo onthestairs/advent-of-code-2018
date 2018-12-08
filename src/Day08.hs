@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor, DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor, DeriveFoldable, TypeFamilies #-}
 
 module Day08(
     solve1',
@@ -7,6 +7,7 @@ module Day08(
 
 import Relude
 
+import Data.Functor.Foldable
 import Data.List ((!!))
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -21,6 +22,13 @@ solve2' = solve2 <<$>> parseMaybe treeParser
 
 type MetaData = [Int]
 data Tree a = Tree a [Tree a] deriving (Show, Functor, Foldable)
+-- recursion schemes instances
+data TreeF a r = TreeF a [r] deriving (Show, Eq, Functor)
+type instance Base (Tree a) = TreeF a
+instance Recursive (Tree a) where
+  project (Tree x cs) = TreeF x cs
+instance Corecursive (Tree a) where
+  embed (TreeF x cs) = Tree x cs
 
 nSepBy :: Int -> Parser a -> Parser b -> Parser [b]
 nSepBy 0 sep p = pure $ []
@@ -48,18 +56,13 @@ treeParser = do
     pure $ Tree metaData children
 
 solve1 :: Tree MetaData -> Int
-solve1 = sum . fmap sum
+solve1 = cata algebra where
+  algebra (TreeF metadata children) = sum metadata + sum children
 
-safeLookup n xs = if (n < length xs) && (n >= 0) then Just (xs !! n) else Nothing
-
-getMetaDataValue :: [Tree MetaData] -> Int -> Int
-getMetaDataValue xs n = case safeLookup (n-1) xs of
-  Just child -> getNodeValue child
-  Nothing -> 0
-
-getNodeValue :: Tree MetaData -> Int
-getNodeValue (Tree metadata []) = sum metadata
-getNodeValue (Tree metadata xs) = sum $ map (getMetaDataValue xs) metadata
+safeLookup xs n = if (n < length xs) && (n >= 0) then Just (xs !! n) else Nothing
+lookupWithDefault d xs n = fromMaybe d (safeLookup xs n)
 
 solve2 :: Tree MetaData -> Int
-solve2 = getNodeValue
+solve2 = cata algebra
+  where algebra (TreeF metadata []) = sum metadata
+        algebra (TreeF metadata xs) = sum $ map (lookupWithDefault 0 xs . pred) metadata
