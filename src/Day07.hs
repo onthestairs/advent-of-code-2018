@@ -50,9 +50,6 @@ removeNode x dg = (Map.delete x dg)
 removeDependencies :: Ord a => a -> DependencyGraph a -> DependencyGraph a
 removeDependencies x = Map.map (\v -> Set.delete x v)
 
-removeManyDependencies :: (Ord a, Foldable f) => f a -> DependencyGraph a -> DependencyGraph a
-removeManyDependencies  xs dg = foldl' (flip removeDependencies) dg xs
-
 deleteElement :: Ord a => a -> DependencyGraph a -> DependencyGraph a
 deleteElement x dg = removeDependencies x (removeNode x dg)
 
@@ -69,39 +66,40 @@ traverseInOrder dg' = reverse $ go [] dg'
 solve1 :: [Dependency Char] -> [Char]
 solve1 ds = traverseInOrder $ makeDependencyGraph ds
 
+--------
+
 type Seconds = Int
 data ElfState = Idle | WorkingOnStep Step Seconds deriving (Eq, Show)
 stepTime step = ((ord step) - 64) + 60
 
-startWorkingOnStep :: Step -> DependencyGraph Step -> ElfState
-startWorkingOnStep s dg = WorkingOnStep s (stepTime s)
+foldAndGather :: Foldable f => ((a, b) -> (a, b)) -> b -> f a -> ([a], b)
+foldAndGather f start xs = foldl' (\(as, b) a -> let (a', b') = f (a, b) in (a':as, b') ) ([], start) xs
+
+elfTick :: (ElfState, DependencyGraph Step) -> (ElfState, DependencyGraph Step)
+elfTick (Idle, dg) = (Idle, dg)
+elfTick (WorkingOnStep s 1, dg) = (Idle, removeDependencies s dg)
+elfTick (WorkingOnStep s n, dg) = (WorkingOnStep s (n-1), dg)
+
+tick :: ([ElfState], DependencyGraph Step) -> ([ElfState], DependencyGraph Step)
+tick (es, dg) = foldAndGather elfTick dg es
 
 tryToFindWork :: DependencyGraph Step -> (ElfState, DependencyGraph Step)
 tryToFindWork dg = case findFrontier dg of
   Just (f NE.:| _) -> (WorkingOnStep f (stepTime f), removeNode f dg)
   Nothing -> (Idle, dg)
 
-doElfTimeStep :: (ElfState, DependencyGraph Step) -> (ElfState, DependencyGraph Step)
-doElfTimeStep (WorkingOnStep s 1, dg) = tryToFindWork dg
-doElfTimeStep (WorkingOnStep s n, dg) = (WorkingOnStep s (n-1), dg)
-doElfTimeStep (Idle, dg) = tryToFindWork dg
+elfPickUpWork :: (ElfState, DependencyGraph Step) -> (ElfState, DependencyGraph Step)
+elfPickUpWork (Idle, dg) = tryToFindWork dg
+elfPickUpWork s = s
 
-elfTimeStepAccumulator :: ([ElfState], DependencyGraph Step) -> ElfState -> ([ElfState], DependencyGraph Step)
-elfTimeStepAccumulator (es, dg) e = (e':es, dg')
-  where (e', dg') = doElfTimeStep (e, dg)
+pickUpWork :: ([ElfState], DependencyGraph Step) -> ([ElfState], DependencyGraph Step)
+pickUpWork (es, dg) = foldAndGather elfPickUpWork dg es
 
-releaseUpcomingSteps :: DependencyGraph Step -> [ElfState] -> DependencyGraph Step
-releaseUpcomingSteps dg es = removeManyDependencies toRelease dg
-  where toRelease = mapMaybe shouldRelease es
-        shouldRelease (WorkingOnStep s 1) = Just s
-        shouldRelease _ = Nothing
-
-doElvesTimeStep :: ([ElfState], DependencyGraph Step) -> ([ElfState], DependencyGraph Step)
-doElvesTimeStep (es, dg) = foldl' elfTimeStepAccumulator ([], dg') es
-  where dg' = releaseUpcomingSteps dg es
+doElvesTimeStep'  :: ([ElfState], DependencyGraph Step) -> ([ElfState], DependencyGraph Step)
+doElvesTimeStep' =  pickUpWork . tick
 
 putElvesToWork :: Int -> DependencyGraph Step -> [[ElfState]]
-putElvesToWork n dg = map fst $ takeWhile (any ((/=) Idle) . fst) $ drop 1 $ iterate doElvesTimeStep (replicate n Idle, dg)
+putElvesToWork n dg = map fst $ takeWhile (any ((/=) Idle) . fst) $ iterate doElvesTimeStep' $ pickUpWork (replicate n Idle, dg)
 
 solve2 :: [Dependency Step] -> Int
 solve2 ds = length $ putElvesToWork 5 (makeDependencyGraph ds)
