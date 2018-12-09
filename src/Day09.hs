@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Day09(
     solve1',
     solve2',
@@ -13,17 +15,13 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import Utils.Parsing
 
-
--- end to end solving functions
-solve1' = solve1 <<$>> parseMaybe gameParser
-solve2' = solve2 <<$>> parseMaybe gameParser
-
 data Game = Game {
-  numberOfPlayers :: Int,
-  numberOfMarbles :: Int
+  _numberOfPlayers :: Int,
+  _numberOfMarbles :: Int
 } deriving (Show)
+makeLenses ''Game
 
-gameParser :: Parser (Game)
+gameParser :: Parser Game
 gameParser = do
   numberOfPlayers <- intParser
   _ <- string " players; last marble is worth "
@@ -35,12 +33,15 @@ type Marble = Int
 data Player = Player {
   _score :: Int
 } deriving (Show)
-updateScore delta (Player score) = Player (score + delta)
+makeLenses ''Player
+updateScore delta player = over score ((+) delta) player
+
 data GameState = GameState {
   _players :: PL.PointedList Player,
   _board :: PL.PointedList Int,
   _marblesInPlay :: [Marble]
 } deriving (Show)
+makeLenses ''GameState
 
 playMarble :: Marble -> PL.PointedList Marble -> PL.PointedList Marble
 playMarble m c = PL.insertLeft m (PL.moveN 2 c)
@@ -65,26 +66,31 @@ rotatePlayers :: GameState -> GameState
 rotatePlayers (GameState players board ms) = GameState (PL.next players) board ms
 
 playGame :: GameState -> GameState
-playGame gameState = case _marblesInPlay nextState of
+playGame gameState = case view marblesInPlay nextState of
   [] -> nextState
-  _ -> playGame $ (rotatePlayers nextState)
+  _ -> playGame (rotatePlayers nextState)
   where
     nextState = doTurn gameState
 
 pointedListToNonEmpty :: PL.PointedList a -> NonEmpty a
 pointedListToNonEmpty pl = view PL.focus pl :| (view prefix pl <> view suffix pl)
 
-
+gameToInitialGameState :: Game -> GameState
 gameToInitialGameState (Game numberOfPlayers numberOfMarbles) =  GameState initialPlayers initialBoard initialMarblesInPlay
   where
+    -- this is a bit awkward as we need to prove non-emptiness
     initialPlayers = foldl' (\ps _ -> PL.insert (Player 0) ps) (PL.singleton (Player 0)) [1..(numberOfPlayers-1)]
     initialBoard = PL.singleton 0
     initialMarblesInPlay = [1..numberOfMarbles]
 
+-- end to end solving functions
+solve1' = solve1 <<$>> parseMaybe gameParser
+solve2' = solve2 <<$>> parseMaybe gameParser
+
 solve1 :: Game -> Int
-solve1 game = maximum1 $ fmap _score $ pointedListToNonEmpty $ _players $ playGame (gameToInitialGameState game)
+solve1 game = maximum1 $ fmap (view score) $ pointedListToNonEmpty $ view players $ playGame (gameToInitialGameState game)
 
 solve2 :: Game -> Int
-solve2 (Game numberOfPlayers numberOfMarbles) = maximum1 $ fmap _score $ pointedListToNonEmpty $ _players $ playGame initialState
+solve2 game = maximum1 $ fmap (view score) $ pointedListToNonEmpty $ view players $ playGame initialState
   where
-    initialState = gameToInitialGameState (Game numberOfPlayers (100*numberOfMarbles))
+    initialState = gameToInitialGameState (over numberOfMarbles ((*) 100) game)
