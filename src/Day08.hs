@@ -56,13 +56,15 @@ treeParser = do
     pure $ Tree metaData children
 
 solve1 :: Tree MetaData -> Int
-solve1 = cata algebra where
-  algebra (TreeF metadata children) = sum metadata + sum children
+solve1 = cata algebra
+  where
+    algebra (TreeF metadata children) = sum metadata + sum children
 
 safeLookup xs n = if (n < length xs) && (n >= 0) then Just (xs !! n) else Nothing
 lookupWithDefault d xs n = fromMaybe d (safeLookup xs n)
 
 solve2 :: Tree MetaData -> Int
 solve2 = cata algebra
-  where algebra (TreeF metadata []) = sum metadata
-        algebra (TreeF metadata xs) = sum $ map (lookupWithDefault 0 xs . pred) metadata
+  where
+    algebra (TreeF metadata []) = sum metadata
+    algebra (TreeF metadata xs) = sum $ map (lookupWithDefault 0 xs . pred) metadata
