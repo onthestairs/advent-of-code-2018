@@ -61,9 +61,9 @@ makeGrid :: SerialNumber -> Point -> Point -> Grid
 makeGrid serialNumber tl@(V2 minX minY) br@(V2 maxX maxY) = Grid tl br $ Map.fromList $ map (\p -> (p, (cellPowerLevel serialNumber p))) points
   where points = [V2 x y | x <- [minX..maxX], y <- [minY..maxY]]
 
-type RectangleMap = Point -> Int
+type RectangleMap = Map.Map Point Int
 makeRectangleValuesCache :: Grid -> RectangleMap
-makeRectangleValuesCache (Grid (V2 minX minY) (V2 maxX maxY) points) = lookup
+makeRectangleValuesCache (Grid (V2 minX minY) (V2 maxX maxY) points) = Map.fromSet lookup $ Set.fromList [V2 x y | x <- xs, y <- ys]
   where
     xs = [minX..maxX]
     ys = [minY..maxY]
@@ -73,11 +73,19 @@ makeRectangleValuesCache (Grid (V2 minX minY) (V2 maxX maxY) points) = lookup
     colSlitherLookup m y = Map.findWithDefault 0 y m
     lookup (V2 x y) = sum $ map (\x' -> colSlitherLookup (Map.findWithDefault Map.empty x' colSlitherMaps) y) [1..x]
 
+rectangleLookup :: RectangleMap -> Point -> Int
+rectangleLookup = flip (Map.findWithDefault 0)
+
 findSquareValue :: RectangleMap -> Point -> Size -> Int
-findSquareValue r (V2 left top) size = (r (V2 right bottom)) - (r (V2 right (top - 1))) - (r (V2 (left - 1) bottom)) +  (r (V2 (left - 1) (top - 1)))
+findSquareValue r (V2 left top) size = bottomRight - topRight - bottomLeft +  topLeft
   where
     bottom = top + size - 1
     right = left + size - 1
+    bottomRight = rectangleLookup r (V2 right bottom)
+    topRight = rectangleLookup r (V2 right (top - 1))
+    bottomLeft = rectangleLookup r (V2 (left - 1) bottom)
+    topLeft = rectangleLookup r (V2 (left - 1) (top - 1))
+
 
 allSquareValues :: Grid -> [Size] -> [SquareValue]
 allSquareValues grid@(Grid (V2 minX minY) (V2 maxX maxY) points) sizes = map (\(p, size) -> SquareValue p size (findSquareValue rectangleMap p size)) squares
