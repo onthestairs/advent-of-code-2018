@@ -27,11 +27,10 @@ data RecipesState = RecipesState {
 makeLenses ''RecipesState
 
 -- end to end solving functions
-solve1' = solve1 <=< parseMaybe intParser
+solve1' = solve1 <<$>> parseMaybe intParser
 solve2' = solve2 <=< parseMaybe intParser
 
 elfRecipeScore :: RecipeScores -> Elf -> Int
--- elfRecipeScore scores (Elf position) = fromMaybe 0 (scores Vector.!? position)
 elfRecipeScore scores (Elf position) = Sequence.index scores position
 
 intDigits :: Int -> [Int]
@@ -49,22 +48,24 @@ appendValues scores ns = scores <> (Sequence.fromList ns)
 moveElf :: RecipeScores -> Elf -> Elf
 moveElf scores elf@(Elf position) = Elf $ (position + (elfRecipeScore scores elf) + 1) `mod` (Sequence.length scores)
 
-tick :: RecipesState -> RecipesState
-tick (RecipesState scores elves) = RecipesState nextScores nextElves
+tick :: RecipesState -> ([Int], RecipesState)
+tick (RecipesState scores elves) = (newRecipeScores, RecipesState nextScores nextElves)
   where
     newRecipeScores = makeNextRecipes scores elves
     nextScores = appendValues scores newRecipeScores
     nextElves = map (moveElf nextScores) elves
 
--- showConcatSequence :: (Foldable f, Show a) => f a -> Text
 showConcatSequence xs = foldl' (\a x -> a <> show x) "" xs
 
--- solve1 :: Int -> Int
-solve1 numberOfRecipes = fmap extractAnswer $ find isLong $ iterate tick initialRecipesState
+makeRecipeList :: [Int] -> RecipesState -> [Int]
+makeRecipeList start state = start <> go state
+  where
+    go state' = let (next, nextState) = tick state' in next <> go nextState
+
+solve1 :: Int -> Text
+solve1 numberOfRecipes = showConcatSequence $ take 10 $ drop numberOfRecipes $ makeRecipeList [3,7] initialRecipesState
   where
     initialRecipesState = RecipesState (Sequence.fromList [3, 7]) [Elf 0, Elf 1]
-    isLong = ((\s -> s >= numberOfRecipes + 10) . Sequence.length . view recipeScores)
-    extractAnswer =  showConcatSequence . Sequence.drop numberOfRecipes . view recipeScores
 
 prefixAt :: Ord a => [a] -> [a] -> Maybe Int
 prefixAt ys xs = go 0 xs
@@ -73,10 +74,6 @@ prefixAt ys xs = go 0 xs
     go n zs@(z:rest) = if take yLength zs == ys then Just n else go (n+1) rest
     go n [] = Nothing
 
-solve2 recipeScoresToFind = fmap (prefixAt prefix) $ viaNonEmpty head $ map (toList . view recipeScores) $ drop 100000000 $ iterate tick initialRecipesState
+solve2 recipeScoresToFind = prefixAt (intDigits recipeScoresToFind) $ makeRecipeList [3,7] initialRecipesState
   where
-    prefix = intDigits recipeScoresToFind
-    -- prefix = intDigits 51589
-    -- prefixLength = length prefix
-    -- extractAnswer = ((-) prefixLength) . Sequence.length . view recipeScores
     initialRecipesState = RecipesState (Sequence.fromList [3, 7]) [Elf 0, Elf 1]
