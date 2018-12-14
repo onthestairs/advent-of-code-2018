@@ -29,6 +29,7 @@ dependencies:
 - recursion-schemes
 - pointedlist
 - lens
+- vector
 
 name: AdventOfCode18
 version: 0.1.0.0
