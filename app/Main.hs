@@ -23,6 +23,7 @@ import qualified Day11
 import qualified Day12
 import qualified Day13
 import qualified Day14
+import qualified Day16
 
 printColouredEither :: (Show a, Show b) => Either a b -> IO ()
 printColouredEither (Left a) = putTextLn (color Red (show a) :: Text)
@@ -58,7 +59,7 @@ solvers = fromList [
     (13, DaySolvers (Done $ Solver "./inputs/13/1.txt" Day13.solve1') (Done $ Solver "./inputs/13/1.txt" Day13.solve2')),
     (14, DaySolvers (Done $ Solver "./inputs/14/1.txt" Day14.solve1') (Done $ Solver "./inputs/14/1.txt" Day14.solve2')),
     (15, DaySolvers NotDone NotDone),
-    (16, DaySolvers NotDone NotDone),
+    (16, DaySolvers (Done $ Solver "./inputs/16/1.txt" Day16.solve1') (Done $ Solver "./inputs/16/1.txt" Day16.solve2')),
     (17, DaySolvers NotDone NotDone),
     (18, DaySolvers NotDone NotDone),
     (19, DaySolvers NotDone NotDone),
